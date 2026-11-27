@@ -1,6 +1,6 @@
 /* =========================================================
    همراه - دستیار هوشمند شخصی آفلاین‌محور (PWA)
-   بدون وابستگی خارجی - قابل اجرا روی GitHub Pages
+   نسخه ۲: دارای پیش‌یادآور قبل از ددلاین + سینک خودکار گیت‌هاب
    ========================================================= */
 
 const CATEGORY_META = {
@@ -14,6 +14,14 @@ const PRIORITY_META = {
   high: 'فوری / مهم',
   medium: 'عادی',
   low: 'کم‌اولویت'
+};
+
+const REMIND_LABELS = {
+  0: 'سر ساعت',
+  30: '۳۰ دقیقه قبل',
+  60: '۱ ساعت قبل',
+  120: '۲ ساعت قبل',
+  180: '۳ ساعت قبل'
 };
 
 const PERSIAN_MONTHS = [
@@ -164,6 +172,8 @@ let state = {
     aiApiKey: '',
     aiBaseUrl: 'https://api.openai.com/v1',
     aiModel: 'gemini-2.5-flash',
+    ghRepo: '',
+    ghToken: '',
     baleToken: '',
     baleChatId: ''
   }
@@ -172,6 +182,7 @@ let state = {
 let deferredInstallPrompt = null;
 let recognition = null;
 let isRecording = false;
+let syncTimer = null;
 
 // ---------- تنظیمات و ذخیره ----------
 function loadSettings() {
@@ -187,6 +198,106 @@ function loadSettings() {
 
 function saveSettingsToStorage() {
   localStorage.setItem('hamrah_settings', JSON.stringify(state.settings));
+}
+
+// ---------- همگام‌سازی با مخزن خصوصی گیت‌هاب ----------
+function toBase64Unicode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  bytes.forEach((b) => (binary += String.fromCharCode(b)));
+  return btoa(binary);
+}
+
+function fromBase64Unicode(base64Str) {
+  const binary = atob(base64Str.replace(/\s/g, ''));
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+async function syncTasksToGitHub(silent = true) {
+  const { ghRepo, ghToken } = state.settings;
+  if (!ghRepo || !ghToken || !navigator.onLine) {
+    if (!silent) showToast('برای همگام‌سازی، اینترنت و اطلاعات مخزن گیت‌هاب لازم است.', true);
+    return false;
+  }
+
+  const apiUrl = `https://api.github.com/repos/${ghRepo.trim()}/contents/tasks.json`;
+  const headers = {
+    Authorization: `Bearer ${ghToken.trim()}`,
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    let sha = undefined;
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.ok) {
+      const existing = await getRes.json();
+      sha = existing.sha;
+    }
+
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      tasks: state.tasks
+    };
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        message: `Sync tasks (${new Date().toISOString()})`,
+        content: toBase64Unicode(JSON.stringify(payload, null, 2)),
+        sha
+      })
+    });
+
+    if (!putRes.ok) throw new Error(`HTTP ${putRes.status}`);
+    if (!silent) showToast('کارها با مخزن خصوصی گیت‌هاب همگام‌سازی شد.');
+    return true;
+  } catch (err) {
+    console.warn('GitHub sync failed:', err);
+    if (!silent) showToast('خطا در همگام‌سازی با گیت‌هاب؛ نام مخزن و توکن را چک کن.', true);
+    return false;
+  }
+}
+
+async function pullTasksFromGitHub() {
+  const { ghRepo, ghToken } = state.settings;
+  if (!ghRepo || !ghToken || !navigator.onLine) {
+    showToast('ابتدا نام مخزن و توکن گیت‌هاب را وارد و ذخیره کن.', true);
+    return;
+  }
+
+  const apiUrl = `https://api.github.com/repos/${ghRepo.trim()}/contents/tasks.json`;
+  try {
+    const res = await fetch(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${ghToken.trim()}`,
+        Accept: 'application/vnd.github+json'
+      }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const fileData = await res.json();
+    const parsed = JSON.parse(fromBase64Unicode(fileData.content));
+    if (Array.isArray(parsed.tasks)) {
+      await db.clear('tasks');
+      state.tasks = parsed.tasks;
+      for (const t of state.tasks) await db.put('tasks', t);
+      renderAll();
+      showToast(`${toPersianDigits(state.tasks.length)} کار از گیت‌هاب دریافت شد.`);
+    }
+  } catch (err) {
+    console.warn('GitHub pull failed:', err);
+    showToast('فایل tasks.json در مخزن پیدا نشد یا توکن معتبر نیست.', true);
+  }
+}
+
+function scheduleAutoSync() {
+  if (!state.settings.ghRepo || !state.settings.ghToken) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    syncTasksToGitHub(true);
+  }, 2000);
 }
 
 // ---------- اعلان (Toast) و صدای آرام یادآور ----------
@@ -218,7 +329,7 @@ function playGentleChime() {
   } catch (_) {}
 }
 
-// ---------- خروجی تقویم گوشی (.ics) برای ریمایندر ۱۰۰٪ آفلاین ----------
+// ---------- خروجی تقویم گوشی (.ics) با پیش‌یادآور ----------
 function downloadTaskICS(task) {
   const datePart = (task.dueDate || getTodayISO()).replace(/-/g, '');
   const timePart = (task.dueTime || '09:00').replace(':', '') + '00';
@@ -229,6 +340,9 @@ function downloadTaskICS(task) {
   const endStamp =
     `${endDateObj.getFullYear()}${pad(endDateObj.getMonth() + 1)}${pad(endDateObj.getDate())}` +
     `T${pad(endDateObj.getHours())}${pad(endDateObj.getMinutes())}00`;
+
+  const minsBefore = Number.isFinite(Number(task.remindBefore)) ? Number(task.remindBefore) : 60;
+  const triggerStr = minsBefore > 0 ? `-PT${minsBefore}M` : 'PT0M';
 
   const icsContent = [
     'BEGIN:VCALENDAR',
@@ -241,7 +355,7 @@ function downloadTaskICS(task) {
     `SUMMARY:${task.title}`,
     `DESCRIPTION:${task.notes || 'یادآور ثبت‌شده در دستیار همراه'}`,
     'BEGIN:VALARM',
-    'TRIGGER:-PT10M',
+    `TRIGGER:${triggerStr}`,
     'ACTION:DISPLAY',
     `DESCRIPTION:یادآور: ${task.title}`,
     'END:VALARM',
@@ -256,10 +370,10 @@ function downloadTaskICS(task) {
   a.download = `reminder-${task.id}.ics`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('فایل تقویم دانلود شد؛ با باز کردن آن، یادآور روی گوشی ثبت می‌شود.');
+  showToast('فایل تقویم دانلود شد؛ با باز کردن آن، پیش‌یادآور روی گوشی ثبت می‌شود.');
 }
 
-// ---------- ارسال ریمایندر به پیام‌رسان بله ----------
+// ---------- ارسال ریمایندر مستقیم به بله ----------
 async function sendBaleReminder(text) {
   const { baleToken, baleChatId } = state.settings;
   if (!baleToken || !baleChatId) return false;
@@ -273,26 +387,30 @@ async function sendBaleReminder(text) {
   }
 }
 
-// ---------- موتور بررسی ریمایندرها (هر ۳۰ ثانیه) ----------
+// ---------- موتور بررسی پیش‌یادآورها (هر ۳۰ ثانیه) ----------
 async function checkReminders() {
-  const now = new Date();
+  const nowMs = Date.now();
   let changed = false;
 
   for (const task of state.tasks) {
     if (task.done || task.reminded || !task.dueDate || !task.dueTime) continue;
     const dueTimeMs = new Date(`${task.dueDate}T${task.dueTime}:00`).getTime();
-    if (now.getTime() >= dueTimeMs) {
+    const remindBeforeMins = Number.isFinite(Number(task.remindBefore)) ? Number(task.remindBefore) : 120;
+    const triggerTimeMs = dueTimeMs - remindBeforeMins * 60 * 1000;
+
+    if (nowMs >= triggerTimeMs) {
       task.reminded = true;
       await db.put('tasks', task);
       changed = true;
 
-      const msgText = `⏰ یادآور کار: ${task.title}\nبخش: ${CATEGORY_META[task.category]?.label || 'کار'}`;
+      const beforeNote = remindBeforeMins > 0 ? ` (${REMIND_LABELS[remindBeforeMins] || `${remindBeforeMins} دقیقه قبل`} از ددلاین ${toPersianDigits(task.dueTime)})` : '';
+      const msgText = `⏰ یادآور کار: ${task.title}${beforeNote}\nبخش: ${CATEGORY_META[task.category]?.label || 'کار'}`;
       playGentleChime();
       showToast(msgText, true);
 
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('یادآور همراه', {
-          body: `${task.title} (${CATEGORY_META[task.category]?.label || ''})`,
+          body: `${task.title}${beforeNote}`,
           tag: task.id
         });
       }
@@ -303,7 +421,10 @@ async function checkReminders() {
     }
   }
 
-  if (changed) renderAll();
+  if (changed) {
+    renderAll();
+    scheduleAutoSync();
+  }
 }
 
 // ---------- پارسر هوشمند فارسی (۱۰۰٪ آفلاین) ----------
@@ -314,6 +435,7 @@ function parsePersianTaskOffline(rawText) {
   let dueTime = '';
   let priority = 'medium';
   let category = 'work';
+  let remindBefore = 120; // پیش‌فرض ۲ ساعت قبل از ددلاین
 
   // ۱. استخراج تاریخ
   if (/پس\s*فردا/.test(text)) {
@@ -353,7 +475,7 @@ function parsePersianTaskOffline(rawText) {
     }
   }
 
-  // ۲. استخراج ساعت
+  // ۲. استخراج ساعت ددلاین
   const exactTimeMatch = text.match(/(?:ساعت\s*)?(\d{1,2})\s*[:و]\s*(\d{1,2}|نیم)/);
   if (exactTimeMatch) {
     let h = parseInt(exactTimeMatch[1], 10);
@@ -366,7 +488,7 @@ function parsePersianTaskOffline(rawText) {
     const hourOnlyMatch = text.match(/ساعت\s*(\d{1,2})/);
     if (hourOnlyMatch) {
       let h = parseInt(hourOnlyMatch[1], 10);
-      if (/عصر|شب|بعدازظهر/.test(text) && h < 12) h += 12;
+      if (/عصر|شب|بعدازظهر|ظهر/.test(text) && h < 12 && h !== 12) h += 12;
       if (h >= 0 && h <= 23) {
         dueTime = `${String(h).padStart(2, '0')}:00`;
         cleanTitle = cleanTitle.replace(hourOnlyMatch[0], '');
@@ -387,11 +509,12 @@ function parsePersianTaskOffline(rawText) {
   }
 
   // ۳. استخراج اولویت
-  if (/(فوری|مهم|اضطراری|حتما|مدیر)/.test(text)) {
+  if (/(فوری|مهم|اضطراری|حتما|مدیر|تحویل)/.test(text)) {
     priority = 'high';
     cleanTitle = cleanTitle.replace(/#?(فوری|اضطراری)/g, '');
   } else if (/(کم‌اولویت|بعدا|هروقت)/.test(text)) {
     priority = 'low';
+    remindBefore = 60;
   }
 
   // ۴. استخراج دسته‌بندی چندبعدی
@@ -416,6 +539,7 @@ function parsePersianTaskOffline(rawText) {
     title: cleanTitle,
     dueDate,
     dueTime,
+    remindBefore,
     priority,
     category
   };
@@ -432,7 +556,7 @@ async function handleOfflineAssistant(userText) {
       return 'برای امروز کار باز ثبت نشده. اگر کاری توی ذهنته همین‌جا بگو تا برات ثبت کنم، یا امروز رو یکم برای خودت فضا باز کن.';
     }
     const list = todayTasks
-      .map((t, i) => `${toPersianDigits(i + 1)}. ${t.title}${t.dueTime ? ` (ساعت ${toPersianDigits(t.dueTime)})` : ''} [${CATEGORY_META[t.category].label}]`)
+      .map((t, i) => `${toPersianDigits(i + 1)}. ${t.title}${t.dueTime ? ` (ددلاین ${toPersianDigits(t.dueTime)})` : ''} [${CATEGORY_META[t.category].label}]`)
       .join('\n');
     return `لیست کارهای امروزت (${toPersianDigits(todayTasks.length)} مورد):\n${list}`;
   }
@@ -467,6 +591,7 @@ async function handleOfflineAssistant(userText) {
     priority: parsed.priority,
     dueDate: parsed.dueDate,
     dueTime: parsed.dueTime,
+    remindBefore: parsed.remindBefore,
     notes: '',
     done: false,
     reminded: false,
@@ -476,9 +601,12 @@ async function handleOfflineAssistant(userText) {
   state.tasks.unshift(newTask);
   await db.put('tasks', newTask);
   renderAll();
+  scheduleAutoSync();
 
-  const timeInfo = newTask.dueTime ? ` ساعت ${toPersianDigits(newTask.dueTime)}` : '';
-  return `ثبت شد و از ذهنت آزاد شد:\n• عنوان: ${newTask.title}\n• زمان: ${formatJalaliFromISO(newTask.dueDate)}${timeInfo}\n• بخش: ${CATEGORY_META[newTask.category].label} | اولویت: ${PRIORITY_META[newTask.priority]}`;
+  const timeInfo = newTask.dueTime
+    ? ` ساعت ${toPersianDigits(newTask.dueTime)} (یادآور: ${REMIND_LABELS[newTask.remindBefore] || '۲ ساعت قبل'})`
+    : '';
+  return `ثبت شد و از ذهنت آزاد شد:\n• عنوان: ${newTask.title}\n• ددلاین: ${formatJalaliFromISO(newTask.dueDate)}${timeInfo}\n• بخش: ${CATEGORY_META[newTask.category].label} | اولویت: ${PRIORITY_META[newTask.priority]}`;
 }
 
 // ---------- اتصال به هوش مصنوعی آنلاین (Gemini / OpenAI) ----------
@@ -504,9 +632,9 @@ ${openTasksSummary || 'فعلاً کاری ثبت نشده است.'}
 1. مثل یک دستیار واقعی و همراه با کاربر حرف بزن، از فشار ذهنیش کم کن و کمک کن کارهاش رو اولویت‌بندی کنه و تعادل بین کار و زندگی شخصیش حفظ بشه.
 2. اگر کاربر در پیامش به یک یا چند کار جدید برای ثبت یا یادآوری اشاره کرد، در انتهای پاسخ خود دقیقاً یک بلوک JSON به این شکل قرار بده تا برنامه به صورت خودکار آنها را ثبت کند:
 \`\`\`json
-{"tasks":[{"title":"عنوان دقیق کار","dueDate":"YYYY-MM-DD","dueTime":"HH:MM","priority":"high|medium|low","category":"work|project|personal|self"}]}
+{"tasks":[{"title":"عنوان دقیق کار","dueDate":"YYYY-MM-DD","dueTime":"HH:MM","remindBefore":120,"priority":"high|medium|low","category":"work|project|personal|self"}]}
 \`\`\`
-فقط اگر واقعاً کار جدیدی برای ثبت وجود داشت این بلوک JSON را اضافه کن.`;
+مقدار remindBefore تعداد دقیقه قبل از ددلاین برای یادآوری است (مثلاً 120 یعنی ۲ ساعت قبل، 60 یعنی ۱ ساعت قبل، 30 یعنی نیم ساعت قبل). فقط اگر واقعاً کار جدیدی برای ثبت وجود داشت این بلوک JSON را اضافه کن.`;
 
   try {
     let replyText = '';
@@ -562,6 +690,7 @@ ${openTasksSummary || 'فعلاً کاری ثبت نشده است.'}
               priority: PRIORITY_META[item.priority] ? item.priority : 'medium',
               dueDate: item.dueDate || todayISO,
               dueTime: item.dueTime || '',
+              remindBefore: Number.isFinite(Number(item.remindBefore)) ? Number(item.remindBefore) : 120,
               notes: '',
               done: false,
               reminded: false,
@@ -571,6 +700,7 @@ ${openTasksSummary || 'فعلاً کاری ثبت نشده است.'}
             await db.put('tasks', newTask);
           }
           renderAll();
+          scheduleAutoSync();
           showToast(`${toPersianDigits(parsed.tasks.length)} کار توسط دستیار ثبت شد.`);
         }
       } catch (e) {
@@ -671,6 +801,7 @@ function renderTasks() {
       task.done = checkbox.checked;
       await db.put('tasks', task);
       renderAll();
+      scheduleAutoSync();
     });
 
     const body = document.createElement('div');
@@ -711,6 +842,14 @@ function renderTasks() {
       tags.appendChild(dTag);
     }
 
+    if (task.dueTime) {
+      const rMins = Number.isFinite(Number(task.remindBefore)) ? Number(task.remindBefore) : 120;
+      const rTag = document.createElement('span');
+      rTag.className = 'tag';
+      rTag.textContent = `یادآور: ${REMIND_LABELS[rMins] || `${toPersianDigits(rMins)} دقیقه قبل`}`;
+      tags.appendChild(rTag);
+    }
+
     body.appendChild(tags);
 
     const actions = document.createElement('div');
@@ -734,6 +873,7 @@ function renderTasks() {
       state.tasks = state.tasks.filter((t) => t.id !== task.id);
       await db.delete('tasks', task.id);
       renderAll();
+      scheduleAutoSync();
     });
 
     actions.append(icsBtn, editBtn, delBtn);
@@ -801,7 +941,7 @@ function renderBalanceDashboard() {
       row.className = 'upcoming-item';
       row.innerHTML = `
         <span>${u.title}</span>
-        <strong>${toPersianDigits(u.dueTime)}</strong>
+        <strong>ددلاین ${toPersianDigits(u.dueTime)}</strong>
       `;
       upcomingEl.appendChild(row);
     }
@@ -824,6 +964,8 @@ function openTaskModal(task = null) {
   document.getElementById('taskPriorityInput').value = task ? task.priority : 'medium';
   document.getElementById('taskDateInput').value = task ? task.dueDate : getTodayISO(0);
   document.getElementById('taskTimeInput').value = task ? task.dueTime : '';
+  document.getElementById('taskRemindBeforeInput').value =
+    task && Number.isFinite(Number(task.remindBefore)) ? String(task.remindBefore) : '120';
   document.getElementById('taskNotesInput').value = task ? task.notes : '';
   modal.classList.remove('hidden');
 }
@@ -903,6 +1045,8 @@ function syncSettingsUI() {
   document.getElementById('aiApiKey').value = state.settings.aiApiKey;
   document.getElementById('aiBaseUrl').value = state.settings.aiBaseUrl;
   document.getElementById('aiModel').value = state.settings.aiModel;
+  document.getElementById('ghRepo').value = state.settings.ghRepo || '';
+  document.getElementById('ghToken').value = state.settings.ghToken || '';
   document.getElementById('baleToken').value = state.settings.baleToken;
   document.getElementById('baleChatId').value = state.settings.baleChatId;
   toggleAIConfigFields();
@@ -933,7 +1077,7 @@ async function bootstrap() {
   if (state.messages.length === 0) {
     await addChatMessage(
       'assistant',
-      'سلام! من اینجام تا بار «یادم نره» رو از روی ذهنت بردارم.\nهر کاری یادت اومد خیلی راحت بنویس یا بگو (مثلاً: «فردا ساعت ۱۰ ارسال گزارش به مدیر #کار فوری»). حتی وقتی اینترنت قطع باشه هم همه‌چیز رو برات دسته‌بندی و ذخیره می‌کنم.'
+      'سلام! من اینجام تا بار «یادم نره» رو از روی ذهنت بردارم.\nهر کاری یادت اومد خیلی راحت بنویس یا بگو (مثلاً: «امروز ساعت ۱۳ تحویل گزارش به مدیر #کار فوری»). به صورت خودکار ۲ ساعت قبل از ددلاین یادت می‌ندازم.'
     );
   }
 
@@ -960,7 +1104,10 @@ async function bootstrap() {
     document.getElementById('installBtn').classList.add('hidden');
   });
 
-  window.addEventListener('online', updateConnectionBadge);
+  window.addEventListener('online', () => {
+    updateConnectionBadge();
+    scheduleAutoSync();
+  });
   window.addEventListener('offline', updateConnectionBadge);
 
   document.querySelectorAll('.nav-item').forEach((btn) => {
@@ -1025,6 +1172,7 @@ async function bootstrap() {
       priority: document.getElementById('taskPriorityInput').value,
       dueDate: document.getElementById('taskDateInput').value,
       dueTime: document.getElementById('taskTimeInput').value,
+      remindBefore: parseInt(document.getElementById('taskRemindBeforeInput').value, 10) || 0,
       notes: document.getElementById('taskNotesInput').value.trim(),
       done: false,
       reminded: false,
@@ -1045,6 +1193,7 @@ async function bootstrap() {
     await db.put('tasks', taskData);
     closeTaskModal();
     renderAll();
+    scheduleAutoSync();
     showToast('کار ذخیره شد.');
   });
 
@@ -1056,12 +1205,28 @@ async function bootstrap() {
       aiApiKey: document.getElementById('aiApiKey').value.trim(),
       aiBaseUrl: document.getElementById('aiBaseUrl').value.trim(),
       aiModel: document.getElementById('aiModel').value.trim(),
+      ghRepo: document.getElementById('ghRepo').value.trim(),
+      ghToken: document.getElementById('ghToken').value.trim(),
       baleToken: document.getElementById('baleToken').value.trim(),
       baleChatId: document.getElementById('baleChatId').value.trim()
     };
     saveSettingsToStorage();
     updateConnectionBadge();
     showToast('تنظیمات با موفقیت ذخیره شد.');
+  });
+
+  document.getElementById('syncNowBtn').addEventListener('click', () => {
+    state.settings.ghRepo = document.getElementById('ghRepo').value.trim();
+    state.settings.ghToken = document.getElementById('ghToken').value.trim();
+    saveSettingsToStorage();
+    syncTasksToGitHub(false);
+  });
+
+  document.getElementById('pullFromGhBtn').addEventListener('click', () => {
+    state.settings.ghRepo = document.getElementById('ghRepo').value.trim();
+    state.settings.ghToken = document.getElementById('ghToken').value.trim();
+    saveSettingsToStorage();
+    pullTasksFromGitHub();
   });
 
   document.getElementById('enableNotifBtn').addEventListener('click', async () => {
@@ -1115,6 +1280,7 @@ async function bootstrap() {
         for (const m of state.messages) await db.put('messages', m);
       }
       renderAll();
+      scheduleAutoSync();
       showToast('اطلاعات با موفقیت بازگردانی شد.');
     } catch (_) {
       showToast('فایل پشتیبان معتبر نیست.', true);

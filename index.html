@@ -1,291 +1,339 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#30411F" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>همراه | دستیار هوشمند شخصی</title>
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#30411F" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>همراه | دستیار هوشمند شخصی</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="stylesheet" href="./style.css" />
 </head>
+
 <body>
-  <div class="app-shell">
-    <!-- هدر بالا -->
-    <header class="top-bar">
-      <div class="brand">
-        <div class="brand-logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-          </svg>
-        </div>
-        <div>
-          <h1>همراه</h1>
-          <p id="jalaliDateDisplay" class="date-subtitle">در حال بارگذاری تاریخ...</p>
-        </div>
-      </div>
-
-      <div class="header-actions">
-        <span id="connectionBadge" class="status-pill online">آنلاین</span>
-        <button id="installBtn" class="icon-btn hidden" title="نصب اپلیکیشن">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- محتوای اصلی -->
-    <main class="main-content">
-      <!-- تب ۱: دستیار چت و صوتی -->
-      <section id="view-chat" class="view active">
-        <div class="chat-quick-chips">
-          <button class="chip" data-prompt="امروز چی دارم؟">امروز چی دارم؟</button>
-          <button class="chip" data-prompt="کارهای عقب‌افتاده">کارهای عقب‌افتاده</button>
-          <button class="chip" data-prompt="فردا ساعت ۱۰ ارسال گزارش به مدیر #کار فوری">مثال ثبت سریع</button>
-          <button class="chip" data-prompt="خیلی سرم شلوغه، کمکم کن اولویت‌بندی کنم">کمک برای اولویت‌بندی</button>
-        </div>
-
-        <div id="chatMessages" class="chat-messages"></div>
-
-        <form id="chatForm" class="chat-composer">
-          <button type="button" id="voiceBtn" class="composer-icon-btn" title="دستور صوتی (آنلاین) - برای آفلاین از میکروفون کیبورد گوشی استفاده کنید">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-              <line x1="12" y1="19" x2="12" y2="23"/>
-              <line x1="8" y1="23" x2="16" y2="23"/>
-            </svg>
-          </button>
-          <textarea id="chatInput" rows="1" placeholder="بنویس یا بگو... مثلاً: فردا ساعت ۱۱ تماس با مشتری #کار فوری"></textarea>
-          <button type="submit" class="send-btn" title="ارسال">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"/>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
-        </form>
-      </section>
-
-      <!-- تب ۲: مدیریت کارها -->
-      <section id="view-tasks" class="view">
-        <div class="tasks-toolbar">
-          <div class="filter-pills" id="taskFilterPills">
-            <button class="filter-pill active" data-filter="all">همه</button>
-            <button class="filter-pill" data-filter="today">امروز</button>
-            <button class="filter-pill" data-filter="overdue">عقب‌افتاده</button>
-            <button class="filter-pill" data-filter="work">کار و مدیریت</button>
-            <button class="filter-pill" data-filter="project">پروژه‌ها</button>
-            <button class="filter-pill" data-filter="personal">شخصی</button>
-            <button class="filter-pill" data-filter="self">خودم و رشد</button>
-            <button class="filter-pill" data-filter="done">انجام‌شده</button>
-          </div>
-          <button id="openAddTaskModalBtn" class="primary-btn small">+ کار جدید</button>
-        </div>
-
-        <div id="tasksList" class="tasks-list"></div>
-      </section>
-
-      <!-- تب ۳: داشبورد تعادل چندبعدی -->
-      <section id="view-balance" class="view">
-        <div class="dashboard-grid">
-          <div class="card summary-card">
-            <h2>نبض امروز</h2>
-            <div class="stats-row">
-              <div class="stat-box">
-                <span id="statTodayCount" class="stat-num">۰</span>
-                <span class="stat-label">کار امروز</span>
-              </div>
-              <div class="stat-box urgent">
-                <span id="statOverdueCount" class="stat-num">۰</span>
-                <span class="stat-label">عقب‌افتاده</span>
-              </div>
-              <div class="stat-box success">
-                <span id="statDoneCount" class="stat-num">۰</span>
-                <span class="stat-label">انجام‌شده</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h2>تعادل ابعاد زندگی</h2>
-            <p class="muted-text">این نمودار نشون می‌ده چقدر از انرژیت صرف کار شده و آیا برای خودت هم فضا گذاشتی یا نه.</p>
-            <div id="balanceBars" class="balance-bars"></div>
-          </div>
-
-          <div class="card">
-            <h2>یادآورهای نزدیک (۲۴ ساعت آینده)</h2>
-            <div id="upcomingRemindersList" class="upcoming-list"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- تب ۴: تنظیمات و اتصالات -->
-      <section id="view-settings" class="view">
-        <div class="settings-container">
-          <div class="card">
-            <h2>هوش مصنوعی (حالت آنلاین)</h2>
-            <p class="muted-text">کلید API فقط روی مرورگر خودت ذخیره می‌شه و به هیچ سروری ارسال نمی‌شه. در نبود اینترنت، دستیار به صورت خودکار روی موتور آفلاین فارسی سوئیچ می‌کنه.</p>
-
-            <div class="form-group">
-              <label for="aiProvider">سرویس‌دهنده هوش مصنوعی</label>
-              <select id="aiProvider">
-                <option value="offline">فقط حالت آفلاین (بدون نیاز به API)</option>
-                <option value="gemini">Google Gemini API</option>
-                <option value="openai">OpenAI / سازگار با OpenAI (مثل AvalAI، GapGPT، OpenRouter)</option>
-              </select>
+    <div class="app-shell">
+        <!-- هدر بالا -->
+        <header class="top-bar">
+            <div class="brand">
+                <div class="brand-logo" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1>همراه</h1>
+                    <p id="jalaliDateDisplay" class="date-subtitle">در حال بارگذاری تاریخ...</p>
+                </div>
             </div>
 
-            <div id="aiConfigFields" class="hidden">
-              <div class="form-group">
-                <label for="aiApiKey">کلید API</label>
-                <input type="password" id="aiApiKey" placeholder="کلید خود را وارد کنید..." />
-              </div>
-              <div class="form-group" id="aiBaseUrlGroup">
-                <label for="aiBaseUrl">آدرس Base URL (فقط برای OpenAI سازگار)</label>
-                <input type="url" id="aiBaseUrl" placeholder="https://api.openai.com/v1" />
-              </div>
-              <div class="form-group">
-                <label for="aiModel">نام مدل</label>
-                <input type="text" id="aiModel" placeholder="gemini-2.5-flash یا gpt-4o-mini" />
-              </div>
+            <div class="header-actions">
+                <span id="connectionBadge" class="status-pill online">آنلاین</span>
+                <button id="installBtn" class="icon-btn hidden" title="نصب اپلیکیشن">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                </button>
             </div>
-          </div>
+        </header>
 
-          <div class="card">
-            <h2>سیستم ریمایندر و یادآور</h2>
-            <div class="setting-row">
-              <div>
-                <strong>نوتیفیکیشن مرورگر و صدا</strong>
-                <p class="muted-text">هشدار روی سیستم و گوشی وقتی اپ باز است</p>
-              </div>
-              <button id="enableNotifBtn" class="secondary-btn">فعال‌سازی</button>
-            </div>
+        <!-- محتوای اصلی -->
+        <main class="main-content">
+            <!-- تب ۱: دستیار چت و صوتی -->
+            <section id="view-chat" class="view active">
+                <div class="chat-quick-chips">
+                    <button class="chip" data-prompt="امروز چی دارم؟">امروز چی دارم؟</button>
+                    <button class="chip" data-prompt="کارهای عقب‌افتاده">کارهای عقب‌افتاده</button>
+                    <button class="chip" data-prompt="فردا ساعت ۱۳ تحویل گزارش به مدیر #کار فوری">مثال ثبت سریع</button>
+                    <button class="chip" data-prompt="خیلی سرم شلوغه، کمکم کن اولویت‌بندی کنم">کمک برای
+                        اولویت‌بندی</button>
+                </div>
 
-            <hr class="divider" />
+                <div id="chatMessages" class="chat-messages"></div>
 
-            <h3>ارسال ریمایندر به پیام‌رسان بله (اختیاری - ضد قطعی نت بین‌الملل)</h3>
-            <p class="muted-text">اگر ربات بله داری، توکن و Chat ID خودت رو بذار تا هنگام سررسید کار، پیام یادآور مستقیم توی بله برات بیاد.</p>
-            <div class="form-group">
-              <label for="baleToken">توکن ربات بله</label>
-              <input type="password" id="baleToken" placeholder="123456:ABC-DEF..." />
-            </div>
-            <div class="form-group">
-              <label for="baleChatId">شناسه چت (Chat ID)</label>
-              <input type="text" id="baleChatId" placeholder="مثلاً 123456789" />
-            </div>
-            <button type="button" id="testBaleBtn" class="secondary-btn small">تست ارسال پیام به بله</button>
-          </div>
+                <form id="chatForm" class="chat-composer">
+                    <button type="button" id="voiceBtn" class="composer-icon-btn"
+                        title="دستور صوتی (آنلاین) - برای آفلاین از میکروفون کیبورد گوشی استفاده کنید">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <line x1="12" y1="19" x2="12" y2="23" />
+                            <line x1="8" y1="23" x2="16" y2="23" />
+                        </svg>
+                    </button>
+                    <textarea id="chatInput" rows="1"
+                        placeholder="بنویس یا بگو... مثلاً: امروز ساعت ۱۳ تحویل گزارش #کار فوری"></textarea>
+                    <button type="submit" class="send-btn" title="ارسال">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13" />
+                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        </svg>
+                    </button>
+                </form>
+            </section>
 
-          <div class="card">
-            <h2>ذخیره تنظیمات و پشتیبان‌گیری</h2>
-            <div class="actions-wrap">
-              <button id="saveSettingsBtn" class="primary-btn">ذخیره تنظیمات</button>
-              <button id="exportDataBtn" class="secondary-btn">خروجی پشتیبان (JSON)</button>
-              <label class="secondary-btn file-btn">
-                بازگردانی پشتیبان
-                <input type="file" id="importDataInput" accept=".json" hidden />
-              </label>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
+            <!-- تب ۲: مدیریت کارها -->
+            <section id="view-tasks" class="view">
+                <div class="tasks-toolbar">
+                    <div class="filter-pills" id="taskFilterPills">
+                        <button class="filter-pill active" data-filter="all">همه</button>
+                        <button class="filter-pill" data-filter="today">امروز</button>
+                        <button class="filter-pill" data-filter="overdue">عقب‌افتاده</button>
+                        <button class="filter-pill" data-filter="work">کار و مدیریت</button>
+                        <button class="filter-pill" data-filter="project">پروژه‌ها</button>
+                        <button class="filter-pill" data-filter="personal">شخصی</button>
+                        <button class="filter-pill" data-filter="self">خودم و رشد</button>
+                        <button class="filter-pill" data-filter="done">انجام‌شده</button>
+                    </div>
+                    <button id="openAddTaskModalBtn" class="primary-btn small">+ کار جدید</button>
+                </div>
 
-    <!-- نوار ناوبری پایین -->
-    <nav class="bottom-nav">
-      <button class="nav-item active" data-view="chat">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        <span>دستیار</span>
-      </button>
-      <button class="nav-item" data-view="tasks">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="9 11 12 14 22 4"/>
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-        </svg>
-        <span>کارها</span>
-        <span id="navBadgeOverdue" class="nav-badge hidden">0</span>
-      </button>
-      <button class="nav-item" data-view="balance">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 2a10 10 0 0 1 10 10h-10z"/>
-        </svg>
-        <span>تعادل</span>
-      </button>
-      <button class="nav-item" data-view="settings">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-        <span>تنظیمات</span>
-      </button>
-    </nav>
-  </div>
+                <div id="tasksList" class="tasks-list"></div>
+            </section>
 
-  <!-- مودال افزودن / ویرایش کار -->
-  <div id="taskModal" class="modal hidden">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="taskModalTitle">ثبت کار جدید</h3>
-        <button id="closeTaskModalBtn" class="icon-btn" aria-label="بستن">&times;</button>
-      </div>
-      <form id="taskForm">
-        <input type="hidden" id="taskIdInput" />
-        <div class="form-group">
-          <label for="taskTitleInput">عنوان کار</label>
-          <input type="text" id="taskTitleInput" required placeholder="مثلاً: ارسال فایل گزارش هفتگی برای مدیر" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="taskCategoryInput">بُعد / دسته‌بندی</label>
-            <select id="taskCategoryInput">
-              <option value="work">کار و مدیریت</option>
-              <option value="project">پروژه‌ها</option>
-              <option value="personal">شخصی و روزمره</option>
-              <option value="self">خودم، رشد و استراحت</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="taskPriorityInput">اولویت</label>
-            <select id="taskPriorityInput">
-              <option value="high">فوری / مهم</option>
-              <option value="medium" selected>عادی</option>
-              <option value="low">کم‌اولویت</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="taskDateInput">تاریخ سررسید</label>
-            <input type="date" id="taskDateInput" />
-          </div>
-          <div class="form-group">
-            <label for="taskTimeInput">ساعت یادآور</label>
-            <input type="time" id="taskTimeInput" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="taskNotesInput">جزئیات بیشتر (اختیاری)</label>
-          <textarea id="taskNotesInput" rows="2" placeholder="نکته‌ای که نباید فراموش کنی..."></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="submit" class="primary-btn">ذخیره کار</button>
-          <button type="button" id="cancelTaskModalBtn" class="secondary-btn">انصراف</button>
-        </div>
-      </form>
+            <!-- تب ۳: داشبورد تعادل چندبعدی -->
+            <section id="view-balance" class="view">
+                <div class="dashboard-grid">
+                    <div class="card summary-card">
+                        <h2>نبض امروز</h2>
+                        <div class="stats-row">
+                            <div class="stat-box">
+                                <span id="statTodayCount" class="stat-num">۰</span>
+                                <span class="stat-label">کار امروز</span>
+                            </div>
+                            <div class="stat-box urgent">
+                                <span id="statOverdueCount" class="stat-num">۰</span>
+                                <span class="stat-label">عقب‌افتاده</span>
+                            </div>
+                            <div class="stat-box success">
+                                <span id="statDoneCount" class="stat-num">۰</span>
+                                <span class="stat-label">انجام‌شده</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>تعادل ابعاد زندگی</h2>
+                        <p class="muted-text">این نمودار نشون می‌ده چقدر از انرژیت صرف کار شده و آیا برای خودت هم فضا
+                            گذاشتی یا نه.</p>
+                        <div id="balanceBars" class="balance-bars"></div>
+                    </div>
+
+                    <div class="card">
+                        <h2>یادآورهای نزدیک (۲۴ ساعت آینده)</h2>
+                        <div id="upcomingRemindersList" class="upcoming-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- تب ۴: تنظیمات و اتصالات -->
+            <section id="view-settings" class="view">
+                <div class="settings-container">
+                    <div class="card">
+                        <h2>هوش مصنوعی (حالت آنلاین)</h2>
+                        <p class="muted-text">کلید API فقط روی مرورگر خودت ذخیره می‌شه. در نبود اینترنت، دستیار به صورت
+                            خودکار روی موتور آفلاین فارسی سوئیچ می‌کنه.</p>
+
+                        <div class="form-group">
+                            <label for="aiProvider">سرویس‌دهنده هوش مصنوعی</label>
+                            <select id="aiProvider">
+                                <option value="offline">فقط حالت آفلاین (بدون نیاز به API)</option>
+                                <option value="gemini">Google Gemini API</option>
+                                <option value="openai">OpenAI / سازگار با OpenAI (مثل AvalAI، GapGPT، OpenRouter)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div id="aiConfigFields" class="hidden">
+                            <div class="form-group">
+                                <label for="aiApiKey">کلید API</label>
+                                <input type="password" id="aiApiKey" placeholder="کلید خود را وارد کنید..." />
+                            </div>
+                            <div class="form-group" id="aiBaseUrlGroup">
+                                <label for="aiBaseUrl">آدرس Base URL (فقط برای OpenAI سازگار)</label>
+                                <input type="url" id="aiBaseUrl" placeholder="https://api.openai.com/v1" />
+                            </div>
+                            <div class="form-group">
+                                <label for="aiModel">نام مدل</label>
+                                <input type="text" id="aiModel" placeholder="gemini-2.5-flash یا gpt-4o-mini" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>همگام‌سازی خودکار با گیت‌هاب (برای ریمایندر پس‌زمینه)</h2>
+                        <p class="muted-text">با اتصال به مخزن خصوصی گیت‌هاب (مثلاً
+                            <code>fazeleardestani/todo-data</code>)، هر تغییری در کارها خودکار سینک می‌شه تا GitHub
+                            Actions لیست روزانه و پیش‌یادآورها رو برات توی بله بفرسته.</p>
+
+                        <div class="form-group">
+                            <label for="ghRepo">نام مخزن خصوصی (username/repo)</label>
+                            <input type="text" id="ghRepo" placeholder="fazeleardestani/todo-data" dir="ltr" />
+                        </div>
+                        <div class="form-group">
+                            <label for="ghToken">توکن دسترسی گیت‌هاب (Personal Access Token)</label>
+                            <input type="password" id="ghToken" placeholder="github_pat_..." dir="ltr" />
+                        </div>
+                        <div class="actions-wrap">
+                            <button type="button" id="syncNowBtn" class="secondary-btn small">همگام‌سازی الان</button>
+                            <button type="button" id="pullFromGhBtn" class="secondary-btn small">دریافت کارها از
+                                گیت‌هاب</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>سیستم ریمایندر و یادآور</h2>
+                        <div class="setting-row">
+                            <div>
+                                <strong>نوتیفیکیشن مرورگر و صدا</strong>
+                                <p class="muted-text">هشدار روی سیستم و گوشی وقتی اپ باز است</p>
+                            </div>
+                            <button id="enableNotifBtn" class="secondary-btn">فعال‌سازی</button>
+                        </div>
+
+                        <hr class="divider" />
+
+                        <h3>ارسال ریمایندر مستقیم به بله (وقتی اپ باز است)</h3>
+                        <p class="muted-text">اگر ربات بله داری، توکن و Chat ID خودت رو بذار تا هنگام سررسید کار، پیام
+                            یادآور مستقیم توی بله برات بیاد.</p>
+                        <div class="form-group">
+                            <label for="baleToken">توکن ربات بله</label>
+                            <input type="password" id="baleToken" placeholder="123456:ABC-DEF..." dir="ltr" />
+                        </div>
+                        <div class="form-group">
+                            <label for="baleChatId">شناسه چت (Chat ID)</label>
+                            <input type="text" id="baleChatId" placeholder="مثلاً 123456789" dir="ltr" />
+                        </div>
+                        <button type="button" id="testBaleBtn" class="secondary-btn small">تست ارسال پیام به
+                            بله</button>
+                    </div>
+
+                    <div class="card">
+                        <h2>ذخیره تنظیمات و پشتیبان‌گیری</h2>
+                        <div class="actions-wrap">
+                            <button id="saveSettingsBtn" class="primary-btn">ذخیره تنظیمات</button>
+                            <button id="exportDataBtn" class="secondary-btn">خروجی پشتیبان (JSON)</button>
+                            <label class="secondary-btn file-btn">
+                                بازگردانی پشتیبان
+                                <input type="file" id="importDataInput" accept=".json" hidden />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- نوار ناوبری پایین -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-view="chat">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span>دستیار</span>
+            </button>
+            <button class="nav-item" data-view="tasks">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 11 12 14 22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+                <span>کارها</span>
+                <span id="navBadgeOverdue" class="nav-badge hidden">0</span>
+            </button>
+            <button class="nav-item" data-view="balance">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2a10 10 0 0 1 10 10h-10z" />
+                </svg>
+                <span>تعادل</span>
+            </button>
+            <button class="nav-item" data-view="settings">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>تنظیمات</span>
+            </button>
+        </nav>
     </div>
-  </div>
 
-  <!-- پیام اعلان (Toast) -->
-  <div id="toastContainer" class="toast-container"></div>
+    <!-- مودال افزودن / ویرایش کار -->
+    <div id="taskModal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="taskModalTitle">ثبت کار جدید</h3>
+                <button id="closeTaskModalBtn" class="icon-btn" aria-label="بستن">&times;</button>
+            </div>
+            <form id="taskForm">
+                <input type="hidden" id="taskIdInput" />
+                <div class="form-group">
+                    <label for="taskTitleInput">عنوان کار</label>
+                    <input type="text" id="taskTitleInput" required
+                        placeholder="مثلاً: ارسال فایل گزارش هفتگی برای مدیر" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskCategoryInput">بُعد / دسته‌بندی</label>
+                        <select id="taskCategoryInput">
+                            <option value="work">کار و مدیریت</option>
+                            <option value="project">پروژه‌ها</option>
+                            <option value="personal">شخصی و روزمره</option>
+                            <option value="self">خودم، رشد و استراحت</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskPriorityInput">اولویت</label>
+                        <select id="taskPriorityInput">
+                            <option value="high">فوری / مهم</option>
+                            <option value="medium" selected>عادی</option>
+                            <option value="low">کم‌اولویت</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskDateInput">تاریخ ددلاین</label>
+                        <input type="date" id="taskDateInput" />
+                    </div>
+                    <div class="form-group">
+                        <label for="taskTimeInput">ساعت ددلاین</label>
+                        <input type="time" id="taskTimeInput" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="taskRemindBeforeInput">پیش‌یادآور (کی یادت بندازه؟)</label>
+                    <select id="taskRemindBeforeInput">
+                        <option value="0">دقیقاً سر ساعت ددلاین</option>
+                        <option value="30">۳۰ دقیقه قبل از ددلاین</option>
+                        <option value="60">۱ ساعت قبل از ددلاین</option>
+                        <option value="120" selected>۲ ساعت قبل از ددلاین</option>
+                        <option value="180">۳ ساعت قبل از ددلاین</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="taskNotesInput">جزئیات بیشتر (اختیاری)</label>
+                    <textarea id="taskNotesInput" rows="2" placeholder="نکته‌ای که نباید فراموش کنی..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="primary-btn">ذخیره کار</button>
+                    <button type="button" id="cancelTaskModalBtn" class="secondary-btn">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-  <script src="./app.js"></script>
+    <!-- پیام اعلان (Toast) -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="./app.js"></script>
 </body>
+
 </html>

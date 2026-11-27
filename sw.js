@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hamrah-pwa-v2';
+const CACHE_NAME = 'hamrah-pwa-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
