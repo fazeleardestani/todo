@@ -1,0 +1,20 @@
+{
+  "name": "همراه | دستیار هوشمند شخصی",
+  "short_name": "همراه",
+  "description": "دستیار شخصی آفلاین‌محور برای مدیریت کارهای چندبعدی و یادآوری",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F6F4EE",
+  "theme_color": "#30411F",
+  "dir": "rtl",
+  "lang": "fa-IR",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='44' fill='%2330411F'/%3E%3Cpath d='M96 36l17 35 39 6-28 27 7 39-35-18-35 18 7-39-28-27 39-6z' fill='%23F6F4EE'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
